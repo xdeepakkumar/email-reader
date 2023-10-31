@@ -6,14 +6,17 @@ import jakarta.mail.*;
 import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.search.FlagTerm;
 import jakarta.mail.search.SearchTerm;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 @Service
+@Slf4j
 public class GmailService {
     @Autowired
     private GmailProperties gmailProperties;
@@ -27,7 +30,7 @@ public class GmailService {
         store.connect("imap.gmail.com", gmailProperties.getUsername(), gmailProperties.getPassword());
 
         Folder inbox = store.getFolder("INBOX");
-        inbox.open(Folder.READ_ONLY);
+        inbox.open(Folder.READ_WRITE);
 
         // Create a search term to filter unread messages
         SearchTerm searchTerm = new FlagTerm(new Flags(Flags.Flag.SEEN), false);
@@ -35,6 +38,7 @@ public class GmailService {
         Message[] unreadMessages = inbox.search(searchTerm);
 
         if (unreadMessages.length == 0) {
+            log.info("No new mail found..............");
             return Collections.emptyList();
         }
 
@@ -53,8 +57,10 @@ public class GmailService {
                 response.setBody(body.substring(0, body.length() - 2));
                 emailList.add(response);
             }
+            log.info("Subject: {}", subject);
+            log.info("Body: {}", body);
+            message.setFlag(Flags.Flag.SEEN, true);
         }
-
         return emailList;
     }
 
